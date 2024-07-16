@@ -1,0 +1,1 @@
+The experiment will have two parts. In Part 1, we have to design a filter to separate a frequency from a signal generated in MATLAB. In part 2, we have to design a filter to remove noise from a real-world signal i.e., ECG signal.
