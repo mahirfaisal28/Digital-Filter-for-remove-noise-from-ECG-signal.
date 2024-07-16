@@ -1,0 +1,154 @@
+clc;
+clear all;
+close all;
+
+%Load ECG signal (replace with your own ECG data)
+load('ECGData.mat'); % Replace 'ECGData.mat' with your file
+ecg_signal_1=val(5,:);
+ecg_signal_2=val(30,:);
+
+% Define ECG Signal Parameter
+Fs = 500;  % Sampling frequency (in Hz)
+N=512;     % Number of points for FFT
+X1=fft(ecg_signal_1,N);
+X2=fft(ecg_signal_2,N);
+df=Fs/N;
+f1 = linspace(-Fs/2, Fs/2, length(ecg_signal_1));
+f2 = linspace(-Fs/2, Fs/2, length(ecg_signal_2));
+t=0:1/Fs:20;
+t=t(1:length(t)-1);
+Fs = 500;  % Sampling frequency (in Hz)
+N = 512;
+X1 = fft(ecg_signal_1, N);
+X2 = fft(ecg_signal_2, N);
+df = Fs / N;
+f1 = linspace(-Fs/2, Fs/2, N);  % Use N instead of length(ecg_signal_1)
+f2 = linspace(-Fs/2, Fs/2, N);  % Use N instead of length(ecg_signal_2)
+t = 0:1/Fs:20;
+t = t(1:length(t)-1);
+
+% Plot ECG-I
+figure(1)
+subplot 311
+plot(t, ecg_signal_1)
+xlabel('Time(s)')
+ylabel('Amplitude(Volt)')
+title('ECG Signal-I')
+subplot 312
+plot(f1, abs(fftshift(X1)), 'green')
+xlabel('Frequency(Hz)')
+ylabel('Magnitude Response')
+title('Frequency Spectrum')
+subplot 313
+plot(f1, angle(fftshift(X1)) * 180/pi, 'red')
+xlabel('Frequency(Hz)')
+ylabel('Phase Response')
+title('Phase Spectrum')
+
+% Plot ECG-II
+figure(2)
+subplot(311)
+plot(t, ecg_signal_2, 'black')
+xlabel('Time(s)')
+ylabel('Amplitude(Volt)')
+title('ECG Signal-II')
+subplot(312)
+plot(f2, abs(fftshift(X2)), 'green')
+xlabel('Frequency(Hz)')
+ylabel('Magnitude Response')
+title('Frequency Spectrum')
+subplot(313)
+plot(f2, angle(fftshift(X2)) * 180/pi, 'red')
+xlabel('Frequency(Hz)')
+ylabel('Phase Response')
+title('Phase Spectrum')
+
+
+% Define Filter Parameters         
+Fp1 = 5;              % Passband frequency (Hz)
+Fp2 = 60;             % Passband frequency (Hz)
+Apass = 0.1;          % Passband ripple (dB)
+Astop = 20;           % Stopband attenuation (dB)
+transition_width = 15; % Width of the transition band (Hz)
+N1 = ceil(3.3 / (transition_width / Fs)); % Filter order
+
+% Calculate normalized frequencies
+Fs = 1000;
+low = Fp1/(Fs);
+high = Fp2/(Fs);
+hamming_window = 0.54 - 0.46 * cos(2*pi*(0:N1-1)/(N1-1));
+taps = zeros(1, N1);
+for x = 1:N1
+    if x == (N1+1)/2
+        taps(x)= 2*(high - low);
+    else
+        taps(x)= (sin(2*pi*high*(x-(N1+1)/2))-sin(2*pi*low*(x-(N1+1)/2)))/(pi*(x-(N1+1)/2));
+    end
+    taps(N1) = taps(N1) * hamming_window(N1);
+end
+
+
+[h1,f]=freqz(taps,1,1024,Fs);
+
+% Apply the filter kernel to the ECG signal using convolution
+filtered_ecg_1 = conv(ecg_signal_1, taps, 'same');
+filtered_ecg_2 = conv(ecg_signal_2, taps, 'same');
+% Define Frequency Response
+
+figure(3)
+subplot 311
+plot(f(1:length(h1)),20*log10(abs(h1)),'black')
+xlabel('Frequency(Hz)')
+ylabel('Magnitude Response(dB)')
+title('Filter Frequency Response')
+subplot 312
+plot(f(1:length(h1)),unwrap(angle(h1)),'black');
+xlabel('Frequency(Hz)')
+ylabel('Phase Respone')
+title('Filter Phase Response')
+subplot 313
+impz(taps,1)
+
+% Apply the FIR filter
+N1=1000;
+df1=Fs/N1; %frequency resulution for fft
+f=-Fs/2:df1:Fs/2-df1+df1/2*mod(N1,2);
+filtered_ecg_1 = filter(taps,1,ecg_signal_1);
+filtered_ecg_2 = filter(taps,1,ecg_signal_2);
+
+Y1=fft(filtered_ecg_1,N1);
+Y2=fft(filtered_ecg_2,N1);
+
+figure(4)
+subplot 311
+plot(t,filtered_ecg_1,'black')
+xlabel('Time(s)')
+ylabel('Amplitude(Volt)')
+title('Filtered ECG Signal-I')
+subplot 312
+plot(f,abs(fftshift(Y1)),'black')
+xlabel('Frequency(Hz)')
+ylabel('Magnitude Response')
+title('Frequency Spectrum')
+subplot 313
+plot(f,angle(fftshift(Y1))*180/pi,'black')
+xlabel('Frequency(Hz)')
+ylabel('Phase Response')
+title('Frequency Spectrum')
+figure(5)
+subplot 311
+plot(t,filtered_ecg_2,'black')
+xlabel('Time(s)')
+ylabel('Amplitude(Volt)')
+title('Filtered ECG Signal-II')
+subplot 312
+plot(f,abs(fftshift(Y2)),'black')
+xlabel('Frequency(Hz)')
+ylabel('Magnitude Response')
+title('Frequency Spectrum')
+subplot 313
+plot(f,angle(fftshift(Y2))*180/pi,'black')
+xlabel('Frequency(Hz)')
+ylabel('Phase Response')
+title('Frequency Spectrum')
+
