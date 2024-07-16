@@ -1,0 +1,67 @@
+% Given parameters
+L = 2;
+M = 3;
+N = 3;
+f1 = 20 * (L + 1);
+f2 = 13 * (M + 2);
+f3 = 18 * (N + 3);
+f4 = 10 * abs(L + M - N + 4);
+
+% Create a time vector
+Fs = 1000; % Sampling frequency
+T = 1 / Fs; % Sampling period
+t = 0:T:1-T; % Time vector
+
+% Generate the signal with four frequency components
+signal = sin(2*pi*f1*t) + sin(2*pi*f2*t) + sin(2*pi*f3*t) + sin(2*pi*f4*t);
+
+% Plot time domain and frequency domain of the generated signal
+figure(1)
+subplot(2, 1, 1);
+plot(t, signal);
+xlabel('Time (s)');
+ylabel('Amplitude');
+title('Time Domain Plot of Generated Signal');
+
+subplot(2, 1, 2);
+f = linspace(-Fs/2, Fs/2, length(signal));
+signal_fft = fftshift(fft(signal));
+plot(f, abs(signal_fft));
+xlabel('Frequency (Hz)');
+ylabel('Magnitude');
+title('Frequency Domain Plot of Generated Signal');
+xlim([-50, 50]);
+
+% % Design the filter to remove f3 frequency
+N = 51; % Filter order
+fc = f3; % Cutoff frequency
+window = hamming(N+1); % Window function
+h = fir1(N, fc/(Fs/2), 'low', window); % FIR filter design
+figure(2)
+% Plot impulse response and frequency response of the filter
+stem(h);
+xlabel('Sample');
+ylabel('Amplitude');
+title('Impulse Response of the Designed Filter');
+
+figure(3)
+freqz(h, 1, 512, Fs);
+title('Frequency Response of the Designed Filter');
+% 
+% % Apply the designed filter to the signal
+filtered_signal = conv(signal, h, 'same');
+% 
+% % Plot time domain and frequency domain of the filtered signal
+figure(4)
+plot(t, filtered_signal);
+xlabel('Time (s)');
+ylabel('Amplitude');
+title('Time Domain Plot of Filtered Signal');
+
+figure(5)
+filtered_fft = fftshift(fft(filtered_signal));
+plot(f, abs(filtered_fft));
+xlabel('Frequency (Hz)');
+ylabel('Magnitude');
+title('Frequency Domain Plot of Filtered Signal');
+xlim([-50, 50]);
